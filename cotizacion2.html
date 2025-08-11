@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Generador de Cotización</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        background: #f4f4f4;
+        padding: 20px;
+      }
+      h2 {
+        margin-top: 2rem;
+      }
+      .container {
+        max-width: 960px;
+        margin: auto;
+        background: #fff;
+        padding: 2rem;
+        border-radius: 1rem;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+      }
+      input,
+      select {
+        font-size: 14px;
+        padding: 0.5rem;
+        margin-bottom: 1rem;
+        width: 100%;
+        box-sizing: border-box;
+      }
+      button {
+        padding: 0.75rem 1.5rem;
+        margin: 1rem 0;
+        border: none;
+        background-color: #000;
+        color: #fff;
+        border-radius: 5px;
+        cursor: pointer;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 1rem;
+      }
+      table,
+      th,
+      td {
+        border: 1px solid #ddd;
+      }
+      th,
+      td {
+        padding: 8px;
+        text-align: left;
+      }
+      .preview {
+        margin-top: 3rem;
+      }
+      .print-btn {
+        background: #007bff;
+      }
+      .product-group {
+        display: grid;
+        grid-template-columns: 2.2fr 1fr 1fr 1fr 1.6fr;
+        gap: 0.75rem;
+        align-items: center;
+        margin-bottom: 1rem;
+      }
+      .product-group input,
+      .product-group select {
+        margin: 0;
+        height: 38px;
+      }
+      .logo-top {
+        text-align: right;
+      }
+      .logo-top img {
+        max-height: 80px;
+      }
+      .inline-fields {
+        display: flex;
+        gap: 1rem;
+        align-items: center;
+        flex-wrap: wrap;
+      }
+      .inline-fields > div {
+        flex: 1;
+        min-width: 150px;
+      }
+    </style>
+
+    <style>
+      @media print {
+        body * {
+          visibility: hidden;
+        }
+        #vistaPrevia,
+        #vistaPrevia * {
+          visibility: visible;
+        }
+        #vistaPrevia {
+          position: absolute;
+          left: 0;
+          top: 0;
+          width: 100%;
+          padding-top: 100px;
+        }
+        #vistaPrevia::before {
+          content: url("https://i.postimg.cc/jdswccMB/Captura-de-pantalla-2025-08-08-a-la-s-5-04-44-p-m.png");
+          position: absolute;
+          top: 0;
+          right: 0;
+          transform: scale(0.5);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="logo-top">
+        <img
+          src="https://i.postimg.cc/jdswccMB/Captura-de-pantalla-2025-08-08-a-la-s-5-04-44-p-m.png"
+          alt="Logo"
+        />
+      </div>
+
+      <h1>Generador de Cotización</h1>
+
+      <label>Cliente:</label>
+      <input type="text" id="cliente" placeholder="Nombre del cliente" />
+
+      <label>R.U.C. (Cliente) - opcional:</label>
+      <input type="text" id="rucCliente" placeholder="R.U.C. del cliente" />
+
+      <label>Correo del cliente - opcional:</label>
+      <input type="email" id="correoCliente" placeholder="Correo electrónico" />
+
+      <label>Teléfono del cliente - opcional:</label>
+      <input type="tel" id="telefonoCliente" placeholder="Número de teléfono" />
+
+      <label>Fecha de cotización:</label>
+      <input type="date" id="fecha" readonly />
+
+      <label>Válida hasta:</label>
+      <input type="date" id="validez" readonly />
+
+      <h2>Productos</h2>
+      <datalist id="paginasConocidas">
+        <option value="www.cruiserheads.com"></option>
+        <option value="www.amazon.com"></option>
+        <option value="www.ebay.com"></option>
+        <option value="www.aliexpress.com"></option>
+        <option value="www.temu.com"></option>
+        <option value="www.shein.com"></option>
+        <option value="www.rockauto.com"></option>
+      </datalist>
+
+      <div id="productos"></div>
+      <button type="button" onclick="agregarProducto()">
+        Agregar producto
+      </button>
+
+      <h2>Envío</h2>
+      <div class="inline-fields">
+        <div>
+          <label for="precioLibra">Precio por libra ($):</label>
+          <input type="number" id="precioLibra" step="0.01" />
+        </div>
+        <div>
+          <label for="rucEmpresa">R.U.C. (Empresa):</label>
+          <input
+            type="text"
+            id="rucEmpresa"
+            placeholder="R.U.C. de la empresa"
+          />
+        </div>
+      </div>
+
+      <button onclick="generarCotizacion()">Cotizar</button>
+
+      <div id="vistaPrevia" class="preview"></div>
+
+      <button class="print-btn" onclick="window.print()">Imprimir</button>
+    </div>
+
+    <script>
+      let contador = 0;
+
+      window.onload = function () {
+        const hoy = new Date();
+        document.getElementById("fecha").value = hoy
+          .toISOString()
+          .split("T")[0];
+        const validez = new Date(hoy);
+        validez.setDate(validez.getDate() + 15);
+        document.getElementById("validez").value = validez
+          .toISOString()
+          .split("T")[0];
+      };
+
+      function agregarProducto() {
+        const contenedor = document.getElementById("productos");
+        const grupo = document.createElement("div");
+        grupo.className = "product-group";
+        grupo.innerHTML = `
+        <input type="text" placeholder="Producto / Servicio" id="producto${contador}">
+        <input type="number" placeholder="Cantidad" id="cantidad${contador}">
+        <input type="number" placeholder="Precio Unitario" id="precio${contador}" step="0.01">
+        <input type="number" placeholder="Peso (lbs)" id="peso${contador}" step="0.01">
+        <input list="paginasConocidas" id="paginaInput${contador}" placeholder="Página" oninput="actualizarPagina(${contador})">
+        <input type="hidden" id="paginaFinal${contador}">
+      `;
+        contenedor.appendChild(grupo);
+        contador++;
+      }
+
+      function actualizarPagina(index) {
+        document.getElementById("paginaFinal" + index).value = document
+          .getElementById("paginaInput" + index)
+          .value.trim();
+      }
+
+      function generarCotizacion() {
+        let html = "";
+        const cliente = document.getElementById("cliente").value;
+        const rucCliente = document.getElementById("rucCliente").value;
+        const correoCliente = document.getElementById("correoCliente").value;
+        const telefonoCliente =
+          document.getElementById("telefonoCliente").value;
+        const fecha = document.getElementById("fecha").value;
+        const validez = document.getElementById("validez").value;
+        const rucEmpresa = document.getElementById("rucEmpresa").value;
+
+        html += `<h2>💼 COTIZACIÓN</h2>
+        <p><strong>Fecha:</strong> ${fecha}</p>
+        <p><strong>Cliente:</strong> ${cliente}</p>`;
+        if (rucCliente)
+          html += `<p><strong>R.U.C. Cliente:</strong> ${rucCliente}</p>`;
+        if (correoCliente)
+          html += `<p><strong>Correo:</strong> ${correoCliente}</p>`;
+        if (telefonoCliente)
+          html += `<p><strong>Teléfono:</strong> ${telefonoCliente}</p>`;
+        html += `<p><strong>Válida hasta:</strong> ${validez}</p>`;
+
+        html += `<h2>📦 PRODUCTOS Y SERVICIOS</h2>
+      <table><tr><th>Producto / Servicio</th><th>Cantidad</th><th>Precio Unitario</th><th>Peso (lbs)</th><th>Total</th></tr>`;
+
+        let subtotal = 0;
+        let totalPeso = 0;
+        const paginasSet = new Set();
+
+        for (let i = 0; i < contador; i++) {
+          const prod = document.getElementById("producto" + i).value;
+          const cant =
+            parseFloat(document.getElementById("cantidad" + i).value) || 0;
+          const prec =
+            parseFloat(document.getElementById("precio" + i).value) || 0;
+          const peso =
+            parseFloat(document.getElementById("peso" + i).value) || 0;
+          const pagina = document
+            .getElementById("paginaFinal" + i)
+            .value.trim();
+          const total = cant * prec;
+
+          subtotal += total;
+          totalPeso += peso;
+          if (pagina) paginasSet.add(pagina);
+
+          html += `<tr><td>${prod}</td><td>${cant}</td><td>$${prec.toFixed(
+            2
+          )}</td><td>${peso}</td><td>$${total.toFixed(2)}</td></tr>`;
+        }
+
+        html += `</table>`;
+
+        const servicioCompra = subtotal * 0.15;
+        const manejo = (subtotal + servicioCompra) * 0.05;
+        const precioLibra =
+          parseFloat(document.getElementById("precioLibra").value) || 0;
+        const envio = precioLibra * totalPeso;
+        const totalCotizado = subtotal + servicioCompra + manejo + envio;
+
+        html += `
+        <h2>🚚 ENVÍO</h2>
+        <p><strong>Precio por libra:</strong> $${precioLibra.toFixed(2)}</p>
+        <p><strong>Peso total:</strong> ${totalPeso} lbs</p>
+        <p><strong>Total envío:</strong> $${envio.toFixed(2)}</p>
+
+        <h2>💰 RESUMEN FINAL</h2>
+        <p><strong>Subtotal productos:</strong> $${subtotal.toFixed(2)}</p>
+        <p><strong>Servicio de compra:</strong> $${servicioCompra.toFixed(
+          2
+        )}</p>
+        <p><strong>Handling Fee:</strong> $${manejo.toFixed(2)}</p>
+        <p><strong>Envío:</strong> $${envio.toFixed(2)}</p>
+        <p><strong><u>TOTAL COTIZADO:</u></strong> <strong>$${totalCotizado.toFixed(
+          2
+        )}</strong></p>
+
+        <h2>📝 CONDICIONES DE COMPRA</h2>
+        <ul>`;
+
+        if (paginasSet.size > 0) {
+          html += `<li>La compra se realiza a través de las siguientes páginas: `;
+          html += Array.from(paginasSet)
+            .map((f) => `<a href="https://${f}" target="_blank">${f}</a>`)
+            .join(", ");
+          html += `</li>`;
+        }
+
+        html += `
+        <li>Todos los productos cotizados son aportados por el cliente y son de su elección. PSC no es el vendedor ni el dueño del producto; los precios pueden estar sujetos a cambios o agotarse.</li>
+        <li>PSC es una empresa transportista que ofrece un servicio de compra, el cual es una transacción de pago por un producto en nombre del cliente.</li>
+        <li>PSC se encarga del manejo y seguimiento de esta compra en nombre del cliente, pero hace constar que su servicio principal y responsabilidad inician una vez el producto sea entregado en bodega y se encuentre en tránsito a Panamá y luego a sus sucursales.</li>
+        <li>Tiempo estimado de entrega: 7–10 días hábiles después de realizar el pago para mercancías en Estados Unidos. De 15–30 días para paquetes de China u Otros Países.</li>
+      </ul>
+
+      <h2>💳 FORMAS DE PAGO</h2>
+      <ul>
+        <li>Efectivo</li>
+        <li>Tarjeta de crédito o débito</li>
+        <li>Yappy</li>
+        <li>Transferencia bancaria</li>
+      </ul>
+
+      <h2>📇 DATOS DE LA EMPRESA</h2>
+      <p><strong>Nombre comercial:</strong> Panama Shipping Co.</p>
+      <p><strong>Página web:</strong> <a href="https://www.soypsc.com" target="_blank">www.soypsc.com</a></p>
+      <p><strong>Instagram:</strong> @soypsc</p>
+      <p><strong>WhatsApp:</strong> +507 6790-6781</p>`;
+        if (rucEmpresa) html += `<p><strong>R.U.C.:</strong> ${rucEmpresa}</p>`;
+
+        document.getElementById("vistaPrevia").innerHTML = html;
+      }
+    </script>
+  </body>
+</html>
